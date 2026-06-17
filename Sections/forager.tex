@@ -1,0 +1,10 @@
+Consider a starving forager problem, where an animal (the forager) is searching for food in an environment with a certain distribution of resources. The forager has a limited energy budget and must decide how to allocate its time and energy to maximize its chances of finding food while minimizing the risk of starvation.
+
+We can model this problem as an optimal control problem with the following dynamics and objective:
+\begin{align}
+    \max J &= \mathbb{E}\left[ \int_{0}^{T} e^{-\rho t} (1 - e^{-\alpha u_{t}}) dt \right] \label{eq:forager:objective}\\
+    \text{subject to: } \quad dx_{t} &= (r x_{t} - u_{t})dt + \sigma x_{t} dW_{t} \label{eq:forager:dynamics},
+\end{align}
+where $x_{t}$ represents the energy level of the forager at time $t$, $u_{t}$ is the foraging effort (control input), $r$ is the natural energy regeneration rate, $\sigma$ is the volatility of the energy level due to environmental factors, $\rho$ is the discount rate, and $\alpha$ controls the saturation of the reward from foraging. The objective function represents the expected discounted reward from foraging over a finite time horizon $T$. The dynamics of the energy level are modeled as a stochastic differential equation (SDE) with a drift term that captures the energy regeneration and depletion due to foraging, and a diffusion term that captures the stochastic fluctuations in energy levels.
+
+\subsection{Baseline/Ground Truth Solution}

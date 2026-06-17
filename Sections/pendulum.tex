@@ -1,0 +1,73 @@
+Consider a stochastic inverted pendulum system, where the state of the system is represented by the angle $\theta$ and angular velocity $\omega$. We seek to solve the following optimal control problem:
+\begin{align}
+    \min J &= (1 - e^{-\beta \theta^2}) + \gamma u^2 \label{eq:pendulum:objective}\\
+    \text{subject to: } \quad d\theta &= \omega dt\label{eq:pendulum:dynamics1}\\
+    \quad d\omega &= \left(\frac{g}{l} \sin(\theta) + \frac{1}{m l^2} u \right)dt + \sigma dW_{t} \label{eq:pendulum:dynamics2},
+\end{align}
+where $u$ is the control input (torque), $g$ is the gravitational constant, $l$ is the length of the pendulum, $m$ is the mass of the pendulum, $b$ is the damping coefficient, $\sigma$ is the noise intensity, $\beta$ controls the penalty on the angle deviation, and $\gamma$ controls the penalty on the control effort. The objective function represents a trade-off between keeping the pendulum upright (minimizing angle deviation) and minimizing control effort. The dynamics of the system are modeled as a stochastic differential equation (SDE) with a drift term that captures the deterministic dynamics of the pendulum and a diffusion term that captures the stochastic disturbances.
+
+For this example, we define the following parameters:
+\begin{align*}
+    g &= 9.81 \quad \text{(gravitational constant)}\\
+    l &= 1.0 \quad \text{(length of pendulum)}\\
+    m &= 1.0 \quad \text{(mass of pendulum)}\\
+    b &= 0.1 \quad \text{(damping coefficient)}\\
+    \sigma &= 0.5 \quad \text{(noise intensity)}\\
+    \beta &= 1.0 \quad \text{(angle penalty)}\\
+    \gamma &= 0.01 \quad \text{(control effort penalty)}
+\end{align*}
+
+\subsection{Baseline/Ground Truth Solution}
+
+The baseline solution to the stochastic optimal control problem is obtained via the Hamilton--Jacobi--Bellman (HJB) equation, which characterizes the optimal value function $V(\theta, \omega)$ under an infinite-horizon discounted formulation. For the system defined by \eqref{eq:pendulum:objective}--\eqref{eq:pendulum:dynamics2}, the HJB equation takes the form:
+\begin{equation}
+\begin{split}
+    0 = \min_{u}\Biggl\{&\ \left(1 - e^{-\beta\theta^2}\right) + \gamma u^2
+        + \frac{\partial V}{\partial \theta}\,\omega \\
+        &+ \frac{\partial V}{\partial \omega}\Bigl(\frac{g}{l}\sin(\theta) + \frac{1}{m l^2}u\Bigr)
+        + \frac{\sigma^2}{2}\frac{\partial^2 V}{\partial \omega^2}\Biggr\}.
+    \label{eq:hjb}
+\end{split}
+\end{equation}
+
+Minimizing pointwise over $u$ yields the optimal control policy in closed form:
+\begin{equation}
+    u^* = -\frac{1}{2\gamma m l^2}\frac{\partial V}{\partial \omega}.
+    \label{eq:optimal_control}
+\end{equation}
+
+Substituting $u^*$ back into~\eqref{eq:hjb} gives the reduced nonlinear PDE:
+\begin{equation}
+\begin{split}
+    0 &= \left(1 - e^{-\beta\theta^2}\right)
+        + \frac{\partial V}{\partial \theta}\,\omega \\
+    &\quad + \frac{\partial V}{\partial \omega}\,\frac{g}{l}\sin{\left(\theta\right)}
+        - \frac{1}{4\gamma m^2 l^4}\left(\frac{\partial V}{\partial \omega}\right)^2 \\
+    &\quad + \frac{\sigma^2}{2}\frac{\partial^2 V}{\partial \omega^2}.
+    \label{eq:hjb_reduced}
+\end{split}
+\end{equation}
+
+Since no closed-form solution exists for the value function $V(\theta, \omega)$ due to the nonlinear $\sin(\theta)$ drift and the asymmetric running cost $(1 - e^{-\beta\theta^2})$, \eqref{eq:hjb_reduced} is solved numerically on a discretized state grid via value iteration. The state space is truncated to the domain $\theta \in [-\pi,\,\pi]$, $\omega \in [-\omega_{\max},\,\omega_{\max}]$ with $\omega_{\max} = 8$~rad/s, and discretized using a uniform grid of $N_\theta \times N_\omega = 201 \times 201$ nodes. Spatial derivatives are approximated via centered finite differences, and the diffusion term $\frac{\sigma^2}{2}\,\partial^2 V/\partial\omega^2$ is treated through the It\^{o} correction on the $\omega$-axis.
+
+The resulting optimal policy $u^*(\theta,\omega)$ and value function $V(\theta,\omega)$ serve as the ground truth against which approximate control methods are evaluated. For the given parameters $(g = 9.81,\ l = 1.0,\ m = 1.0,\ \sigma = 0.5,\ \beta = 1.0,\ \gamma = 0.01)$, the HJB solution captures the full nonlinear structure of the optimal controller: near the upright equilibrium $\theta = 0$, the optimal control approximately reduces to linear state feedback in $\partial V/\partial\omega$, while away from this region the $\sin(\theta)$ term and the saturating cost $(1 - e^{-\beta\theta^2})$ induce meaningful deviations from linear behavior.
+
+To validate trajectory quality, $N_{\mathrm{sim}} = 1000$ Monte Carlo simulations are run from the initial condition $(\theta_0,\omega_0) = (0.5,\,0.0)$ over a horizon of $T = 10$~s with step size $\Delta t = 0.01$~s using the Euler--Maruyama scheme:
+\begin{align}
+    \theta_{k+1} &= \theta_k + \omega_k\,\Delta t, \label{eq:em1}\\
+    \omega_{k+1} &= \omega_k 
+        + \left(\frac{g}{l}\sin(\theta_k) + \frac{u^*_k}{ml^2}\right)\Delta t
+        + \sigma\sqrt{\Delta t}\;\xi_k, \qquad \xi_k \sim \mathcal{N}(0,1).
+    \label{eq:em2}
+\end{align}
+
+The empirical cost is computed as the sample mean of the accumulated running cost
+\begin{equation}
+    \hat{J} = \frac{1}{N_{\mathrm{sim}}}\sum_{n=1}^{N_{\mathrm{sim}}}
+    \sum_{k=0}^{T/\Delta t}
+    \Bigl[\bigl(1 - e^{-\beta\theta_k^{(n)\,2}}\bigr) + \gamma\,u_k^{*(n)\,2}\Bigr]\Delta t
+    \label{eq:empirical_cost}
+\end{equation}
+across all trajectories. The HJB solution thereby provides a performance lower bound\footnote{Subject to the finite-grid discretization error of the value iteration scheme; any method achieving a strictly lower empirical cost than the HJB baseline should be treated as a numerical artifact.} for any approximation scheme: methods whose empirical cost $\hat{J}$ approaches that of the HJB solution are considered near-optimal.
+
+\subsection{Results}

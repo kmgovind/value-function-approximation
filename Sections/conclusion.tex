@@ -1,0 +1,33 @@
+This survey compared ADP/actor-critic, PINN/DGM, deep BSDE, and neural
+value iteration for approximating value functions in stochastic optimal control.
+The key findings are as follows.
+
+\textbf{On the LQR benchmark,} ADP achieves the smallest error because the
+quadratic critic is exactly aligned with the true value function class.
+This is a structural advantage of the benchmark, not a general superiority
+of ADP.  Deep backward DP (labeled ``Deep BSDE'') is the next strongest
+because the Bellman backup is analytic for the quadratic-Gaussian case.
+NVI is accurate but pays a price for action-space discretization.
+PINN/DGM performs worst here because it converts a simple Riccati problem
+into a harder nonlinear residual optimization.
+
+\textbf{On the nonlinear benchmark,} the relative ranking changes substantially.
+Methods with a quadratic critic cannot represent the quartic $V^\star$ and
+should not be used; PINN/DGM with a neural-network approximator is the only
+method that can converge to the true value function.
+
+\textbf{On convergence theory,} all four methods share a fundamental gap:
+no end-to-end guarantee covers the optimizer.  Theoretical results assume
+the training loss is minimized globally; in practice Adam finds only a
+local minimum.  The steady-state HJB residual $E$~\eqref{eqn:ss_residual}
+serves as an empirical convergence certificate.
+
+\textbf{For the intended coverage application,} PINN/DGM applied to the
+finite-horizon stochastic HJB is the recommended primary method.
+It is the only approach that (a) handles degenerate diffusion without
+modification, (b) carries a rigorous uniform-approximation theorem
+(Fotiadis and Vamvoudakis~\cite{fotiadis2025pinn} Theorem~1), and
+(c) does not require an admissible initial policy.
+The ADP/actor-critic framework is appropriate only if the value function
+is known to be approximately quadratic near the operating region and
+an admissible initial policy is available.

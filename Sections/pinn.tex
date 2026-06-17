@@ -1,0 +1,66 @@
+Physics-Informed Neural Networks (PINNs) are a class of neural networks that are designed to solve partial differential equations (PDEs) by incorporating the underlying physics of the problem into the training process. The key idea behind PINNs is to use automatic differentiation to compute the derivatives of the network's output with respect to its input variables, which allows us to enforce the PDE constraints directly in the loss function.
+
+The concept was first introduced in the modern scientific machine learning literature by Raissi, Perdikaris, and Karniadakis~\cite{raissi2019physics} and is surveyed in~\cite{karniadakis2021physics}. The main advantage of PINNs is that they can learn solutions to PDEs with much less data compared to traditional data-driven approaches, as the physics provides a strong inductive bias that guides the learning process. The Deep Galerkin Method (DGM) applies the same idea to high-dimensional parabolic PDEs by sampling collocation points and minimizing the residual of the differential operator~\cite{sirignano2018dgm}.
+
+\paragraph{The uniqueness problem and finite-horizon workaround.}
+Applying PINNs directly to the steady-state HJB~\eqref{eqn:ss-HJB}
+is problematic: because~\eqref{eqn:ss-HJB} admits multiple solutions,
+training may converge to a solution unrelated to $V^\star$, or stall
+entirely~\cite{fotiadis2025pinn}.
+The resolution is to instead train on the \emph{finite-horizon} HJB~\eqref{eqn:stochastic-HJB},
+which has a unique solution $V_T(\cdot,0)$ for any positive semidefinite
+terminal cost $\phi$.
+Fotiadis and Vamvoudakis~\cite{fotiadis2025pinn} prove that
+$V_T(\cdot,0)\to V^\star$ uniformly on compact sets as $T\to\infty$
+(Theorem~1), and that the horizon can be extended iteratively without
+restarting training (Theorem~2), with errors that do not accumulate
+under mild conditions (Theorem~3).
+
+For value function learning, the network $\hat V_\theta(t,x)$ is trained
+to minimize the sum of three mean-squared residuals:
+\begin{align}
+  \mathcal{L}(\theta) &=
+  \underbrace{\frac{1}{N_e}\sum_{i=1}^{N_e}
+    \bigl|F_e(x_i,t_i;\hat V_\theta)\bigr|^2}_{\text{flow residual}}
+  +\underbrace{\frac{1}{N_b}\sum_{i=1}^{N_b}
+    \bigl|\hat V_\theta(T,x_i)-\phi(x_i)\bigr|^2}_{\text{terminal condition}}
+  +\underbrace{\frac{1}{N_{in}}\sum_{i=1}^{N_{in}}
+    \bigl|\hat V_\theta(0,t_i)\bigr|^2}_{\text{origin condition}},
+  \label{eqn:pinn_loss}
+\end{align}
+where the flow residual is
+\begin{equation}
+  F_e(x,t;\hat V_\theta)=\partial_t\hat V_\theta
+    +\nabla_x\hat V_\theta^\top f(x,u^\star)
+    +\tfrac{1}{2}\operatorname{Tr}\!\bigl(\sigma\sigma^\top\nabla_x^2\hat V_\theta\bigr)
+    +c(x,u^\star),
+    \label{eqn:flow_residual}
+\end{equation}
+and $u^\star=-\frac{1}{2}R^{-1}g(x)^\top\nabla_x\hat V_\theta$ is obtained
+by substituting the stationarity condition into the Hamiltonian.
+The Ito correction $\frac{1}{2}\operatorname{Tr}(\sigma\sigma^\top\nabla_x^2\hat V_\theta)$
+requires \emph{second-order automatic differentiation} through the network;
+for the stochastic LQR it reduces to $\frac{1}{2}\operatorname{Tr}(\Sigma^\top\nabla^2\hat V_\theta\,\Sigma)$.
+Once training converges, the quality of the solution is assessed by the
+\emph{steady-state HJB residual}~\cite{fotiadis2025pinn}:
+\begin{equation}\label{eqn:ss_residual}
+  E = \frac{1}{N_c}\sum_{i=1}^{N_c}
+  E_e(x_i;\hat V_T(\cdot,0))^2 + \hat V_T(0,0)^2,
+\end{equation}
+where $E_e(x;\hat V)=\nabla_x\hat V^\top f(x,u^\star)+c(x,u^\star)
+-\frac{1}{4}|\nabla_x\hat V^\top g(x)|^2/R$
+measures how well $\hat V(\cdot,0)$ satisfies~\eqref{eqn:ss-HJB}
+at each evaluation point.  This metric $E$ is independent of the training
+residual and serves as a convergence certificate.
+
+The benefit of this approach is that it directly encodes the stochastic HJB equation and does not require labeled optimal trajectories. Its drawback is optimization stiffness: the HJB residual contains first- and second-order derivatives, and the minimization over controls creates a nonlinear residual. In the case study this makes PINN/DGM less accurate than methods that exploit Bellman backups or the LQR quadratic structure.
+
+\begin{remark}[Optimizer gap]
+All convergence theorems for PINNs assume the training loss $\mathcal{L}$
+is minimized globally.  Because the loss is nonconvex, gradient descent
+(Adam) may find only a local minimum.  This gap between theoretical
+guarantees and practical optimization is an open problem across all
+deep-learning-based PDE solvers~\cite{han2018solving,fotiadis2025pinn}.
+The steady-state residual $E$~\eqref{eqn:ss_residual} serves as an
+empirical certificate when a ground-truth value function is unavailable.
+\end{remark}

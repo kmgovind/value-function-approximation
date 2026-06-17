@@ -1,0 +1,27 @@
+The coverage planning application has four features that fall outside the
+standard assumptions used above:
+\begin{enumerate}
+  \item \textbf{Degenerate diffusion.}
+        The information quality states $q_i$ evolve deterministically;
+        the diffusion matrix is block-diagonal with a zero block,
+        $\Sigma = \operatorname{diag}(\Sigma_x,\sigma_b^2,\mathbf{0}_{m\times m})$.
+        Deep BSDE methods require a generalized Feynman-Kac theorem for
+        this case; PINN/DGM handles it directly.
+  \item \textbf{Non-quadratic Hamiltonian.}
+        The information gain rate $\alpha_i(x,p_s)$ is nonlinear in
+        the sensing power $p_s$, so the $\sup_u[\cdot]$ in the HJB
+        does not reduce to a closed-form quadratic minimizer.
+        The first-order necessary conditions must be solved numerically
+        at each collocation point, or an actor network must be added.
+  \item \textbf{Ito correction cost.}
+        The second-order term $\frac{1}{2}\operatorname{Tr}(\Sigma\nabla_\xi^2 V)$
+        involves only the $d\times d$ position Hessian and one scalar
+        (battery), regardless of $m$.  Second-order AD cost is
+        therefore $O(d^2+1)$, not $O((d+1+m)^2)$.
+  \item \textbf{Multiple solutions.}
+        The infinite-horizon stochastic HJB~\eqref{eqn:ss-HJB} has multiple
+        solutions.  The finite-horizon approximation of~\cite{fotiadis2025pinn}
+        resolves this; horizon extension must be applied.
+\end{enumerate}
+Based on these considerations, PINN/DGM applied to the finite-horizon
+stochastic HJB is the recommended primary method for the coverage problem.

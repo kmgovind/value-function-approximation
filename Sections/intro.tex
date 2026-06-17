@@ -1,0 +1,54 @@
+We study the class of stochastic optimal control problems in which the system state evolves according to a controlled stochastic differential equation (SDE). The general idea is that the optimal value function can be found by solving the stochastic Hamilton-Jacobi-Bellman (HJB) equation, which is a nonlinear partial differential equation (PDE). However, solving the HJB equation directly is often intractable, especially for high-dimensional systems. Therefore, various methods have been developed to learn the value function from data or to approximate it using function approximators like neural networks. In this survey, we will compare four main approaches for value function learning in the context of stochastic optimal control:
+\begin{enumerate}
+    \item Adaptive Dynamic Programming (ADP)/Actor-Critic
+    \item Physics-Informed Neural Networks (PINNs)/Deep Galerkin Method (DGM)
+    \item Deep Backwards Stochastic Differential Equations (BSDEs)
+    \item Neural Value Iteration
+\end{enumerate}
+Each of these methods has its own advantages and limitations, and we will discuss their theoretical foundations, practical implementations, and applications in various domains.
+
+\subsection{General Problem Formulation}
+Consider a stochastic optimal control problem defined by the following dynamics:
+\begin{equation}\label{eqn:stochastic_dynamics}
+dx_t = f(x_t, u_t)dt + \sigma(x_t, u_t)dW_t
+\end{equation}
+where $x_t \in \mathbb{R}^n$ is the state, $u_t \in \mathbb{R}^m$ is the control input, $f$ is the drift term, $\sigma$ is the diffusion term, and $W_t$ is a standard Wiener process. The objective is to find a control policy $\pi: \mathbb{R}^n \rightarrow \mathbb{R}^m$ that minimizes the expected cumulative cost:
+\begin{equation}\label{eqn:cost_function}
+J(\pi) = \mathbb{E}\left[ \int_0^T c(x_t, u_t) dt + h(x_T) \right]
+\end{equation}
+where $c$ is the running cost and $h$ is the terminal cost. The optimal value function $V^*(x)$ is defined as:
+\begin{equation}\label{eqn:value_function}
+V^*(x) = \inf_{\pi} J(\pi | x_0 = x)
+\end{equation}
+The optimal value function satisfies the stochastic HJB equation:
+\begin{equation}\label{eqn:stochastic-HJB}
+\begin{aligned}
+\frac{\partial V}{\partial t} + \inf_{u} \Big[ c(x, u) + \nabla V^T f(x, u) \\
++ \frac{1}{2} \text{Tr}(\sigma(x, u)^T \nabla^2 V \sigma(x, u)) \Big] = 0
+\end{aligned}
+\end{equation}
+with the terminal condition $V(x, T) = h(x)$. Solving this PDE directly is often infeasible, which motivates the development of various value function learning methods.
+
+\subsection{Infinite-Horizon Discounted Formulation}
+The finite-horizon formulation~\eqref{eqn:cost_function}--\eqref{eqn:stochastic-HJB}
+is a useful testbed, but the motivating application is the
+\emph{infinite-horizon discounted} optimal control problem:
+\begin{equation}\label{eqn:inf_horizon_cost}
+  V^\star(x) = \sup_{\pi}\,\mathbb{E}\!\left[
+    \int_0^\infty e^{-\gamma t}\,r(x_t,u_t)\,dt \;\Big|\; x_0=x
+  \right],
+\end{equation}
+where $\gamma>0$ is a discount rate and $r\geq 0$ is a running reward.
+The optimal $V^\star$ satisfies the \emph{steady-state stochastic HJB equation}:
+\begin{equation}\label{eqn:ss-HJB}
+  \gamma V(x) = \sup_u\!\left[
+    r(x,u) + \nabla_x V^\top f(x,u)
+    + \tfrac{1}{2}\operatorname{Tr}\!\bigl(\sigma\sigma^\top \nabla_x^2 V\bigr)
+  \right], \quad V(0)=0.
+\end{equation}
+Two properties of~\eqref{eqn:ss-HJB} critically affect algorithm design:
+\begin{enumerate}
+  \item \textbf{Non-uniqueness.} The steady-state HJB generally admits multiple solutions, even in the scalar linear-quadratic case~\cite{fotiadis2025pinn}. Methods applied directly to~\eqref{eqn:ss-HJB} may converge to a solution unrelated to the optimal value function.
+  \item \textbf{Degenerate diffusion.} If the diffusion matrix $\sigma$ has a zero block (e.g., some state components are deterministic), the PDE is \emph{degenerate elliptic}.
+        Viscosity solution theory still guarantees existence and uniqueness of $V^\star$, but certain trajectory-based methods (e.g., deep BSDEs) require modification.
+\end{enumerate}

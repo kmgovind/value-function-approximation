@@ -1,0 +1,84 @@
+\documentclass[journal, twoside]{IEEEtran}
+
+\usepackage{cite}
+\usepackage[pdftex]{graphicx}
+\usepackage{xcolor}
+\usepackage{lipsum}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{ulem}
+\usepackage{pgfplots}
+\usepackage{hyperref}
+% \usepackage{appendix}
+
+\pgfplotsset{compat=1.18}
+
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+% correct bad hyphenation here
+\hyphenation{op-tical net-works semi-conduc-tor}
+
+\begin{document}
+\title{Value Function Learning: A Survey of Methods and Applications}
+\author{Kavin M. Govindarajan%
+\thanks{This work was supported by the National Science Foundation under Award 2223844. \textit{(Corresponding author: Kavin M. Govindarajan.)}}
+\thanks{Kavin M. Govindarajan is with the Department of Robotics, University of Michigan, Ann Arbor, MI 48109, USA (e-mail: kmgovind@umich.edu).}%
+}
+
+
+% The paper headers
+\markboth{DRAFT}{Govindarajan \MakeLowercase{\textit{et al.}}: XXXXX}
+
+% make the title area
+\maketitle
+
+% As a general rule, do not put math, special symbols or citations
+% in the abstract or keywords.
+\begin{abstract}
+We consider a class of optimal control problems that follow stochastic dynamics. The optimal value function can be found by solving the stochastic Hamilton-Jacobi-Bellman (HJB) equation, which is a nonlinear partial differential equation (PDE). However, solving the HJB equation directly is often intractable, especially for high-dimensional systems. Therefore, various methods have been developed to learn the value function from data or to approximate it using function approximators like neural networks. In this survey, we compare four main approaches for value function learning in the context of stochastic optimal control: Adaptive Dynamic Programming (ADP)/Actor-Critic, Physics-Informed Neural Networks (PINNs)/Deep Galerkin Method (DGM), Deep Backwards Stochastic Differential Equations (BSDEs), and Neural Value Iteration. Each of these methods has its own advantages and limitations, and we discuss their theoretical foundations, practical implementations, and applications in various domains.
+\end{abstract}
+
+% Note that keywords are not normally used for peerreview papers.
+\begin{IEEEkeywords}
+Energy-Aware Robotics, Information-Optimal Control
+\end{IEEEkeywords}
+
+\section{Introduction}\label{sec:intro}
+\input{Sections/intro.tex}
+
+\section{Adaptive Dynamic Programming (ADP)/Actor-Critic}\label{sec:adp}
+\input{Sections/adp.tex}
+
+\section{Physics-Informed Neural Networks (PINNs)/Deep Galerkin Method (DGM)}\label{sec:pinns}
+\input{Sections/pinn.tex}
+
+\section{Deep Backwards Stochastic Differential Equations (BSDEs)}\label{sec:bsdes}
+\input{Sections/bsde.tex}
+
+\section{Neural Value Iteration}\label{sec:nvi}
+\input{Sections/nvi.tex}
+
+\section{Case Study: Stochastic Asset Harvesting}\label{sec:harvest}
+\input{Sections/asset-harvesting.tex}
+
+\section{Case Study: Bounded Stochastic Inverted Pendulum}\label{sec:pendulum}
+\input{Sections/pendulum.tex}
+
+\section{Conclusion}\label{sec:conclusion}
+\input{Sections/conclusion.tex}
+
+% references section
+\bibliographystyle{IEEEtran}
+\bibliography{references.bib}
+
+
+\end{document}
+
+

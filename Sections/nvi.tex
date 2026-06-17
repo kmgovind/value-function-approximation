@@ -1,0 +1,22 @@
+Neural value iteration combines Bellman backups with function approximation. Instead of solving the HJB PDE residual directly, it repeatedly applies a discrete-time dynamic programming operator and projects the result back into a parametric value class. In reinforcement learning language, this is fitted value iteration~\cite{munos2008finite}; in optimal control language, it is an approximate semi-Lagrangian solution of the HJB equation.
+
+In the implementation used here, the value function is represented by a quadratic approximator,
+\begin{equation}
+\hat V_\theta(x)=\theta_1x_1^2+2\theta_2x_1x_2+\theta_3x_2^2+\theta_4,
+\end{equation}
+and the Bellman backup is evaluated on a grid of states and a finite action set. After each backward time step, least squares projects the backed-up values onto the quadratic feature basis. This is not a deep neural network, but it is the direct low-dimensional analog of neural fitted value iteration: replace the quadratic basis with a neural network and the projection step with stochastic gradient descent.
+
+The advantage of this method is modularity. It only requires a simulator, costs, and an action optimizer, so it is easy to modify when dynamics or costs change. The limitation is that it can become expensive or inaccurate when the action discretization is coarse, and the max/min backup can amplify approximation error over long horizons.
+
+\paragraph{Convergence.}
+For the exact Bellman operator $\mathcal{T}$, value iteration converges
+geometrically: $\|\mathcal{T}^k V_0 - V^\star\|_\infty\leq
+e^{-\gamma k\Delta t}\|V_0-V^\star\|_\infty$.
+With function approximation error $\epsilon_k$ at each iteration,
+the error accumulates as $\sum_k e^{-\gamma(n-k)\Delta t}\epsilon_k$,
+which is bounded uniformly if $\epsilon_k$ is uniformly small.
+Munos and Szepesv\'{a}ri~\cite{munos2008finite} give finite-sample
+bounds for fitted value iteration in the off-policy setting.
+The quadratic basis used here cannot represent non-quadratic value
+functions; for the nonlinear benchmark (Section~\ref{sec:nonlinear}),
+the basis must be replaced by a neural network.

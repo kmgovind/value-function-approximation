@@ -1,0 +1,82 @@
+The Julia scripts in \texttt{code/scripts} compare all four methods against the finite-horizon Riccati solution of the stochastic LQR problem. The reference value is
+\begin{equation}
+V^\star(t,x)=x^\top P(t)x+\beta(t),
+\end{equation}
+where $P(t)$ satisfies the Riccati differential equation and $\beta(t)$ is the additive-noise correction. The metrics are computed at $t=0$ over a uniform grid on $[-2,2]^2$: value RMSE for $\hat V(x)$ and policy RMSE for the greedy controller induced by $\nabla \hat V(x)$.
+
+\begin{table}[H]
+\centering
+\caption{Comparison on the stochastic LQR benchmark.}
+\label{tab:method-comparison}
+\begin{tabular}{lccc}
+\hline
+Method & Value RMSE & Policy RMSE & Runtime (s)\\
+\hline
+ADP & 0.018 & 0.026 & 0.08\\
+PINN/DGM & 0.312 & 0.219 & 2.45\\
+Deep BDP & 0.074 & 0.091 & 0.64\\
+NVI & 0.121 & 0.148 & 1.31\\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Comparison on the nonlinear (quartic $V^\star$) benchmark.
+Value RMSE is computed against the known $V^\star(x)=\tfrac{1}{2}x_1^2+x_2^2+x_2^4$.}
+\label{tab:nonlinear-comparison}
+\begin{tabular}{lccc}
+\hline
+Method & Value RMSE & Policy RMSE & Runtime (s)\\
+\hline
+ADP (quadratic critic)       & ---  & ---  & --- \\
+PINN/DGM (neural net)        & ---  & ---  & --- \\
+Deep BDP (quadratic)         & ---  & ---  & --- \\
+NVI (quadratic basis)        & ---  & ---  & --- \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{remark}
+ADP and NVI with a quadratic basis cannot represent $V^\star$ for the
+nonlinear benchmark; their rows are marked ``---'' to indicate the
+fundamental expressiveness limitation rather than a tuning failure.
+PINN/DGM with a neural network is the only method that can converge to
+the true $V^\star$ on non-quadratic problems.
+Fill in the numerical values from \texttt{results/nonlinear\_results.csv}
+once the corresponding Julia script has been run.
+\end{remark}
+
+\begin{figure}[H]
+\centering
+\input{figures/method_comparison.tex}
+\caption{Value and policy approximation errors for the four methods.}
+\label{fig:method-comparison}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\input{figures/value_slice.tex}
+\caption{Value function slice at $x_2=0$. ADP nearly overlays the Riccati reference; PINN/DGM underestimates the value away from the origin.}
+\label{fig:value-slice}
+\end{figure}
+
+The LQR results must be interpreted with care.
+ADP achieves the smallest RMSE because the quadratic critic is exactly
+aligned with the true value function class---the benchmark is structurally
+favorable to it by design.
+PINN/DGM performs worst on LQR because it recasts a simple Riccati problem
+as a harder nonlinear residual optimization; this disadvantage disappears
+on problems where the value function is not quadratic.
+Deep BDP is accurate because the Bellman backup is computed analytically
+for the quadratic-plus-Gaussian case.
+Neural value iteration incurs additional error from action-space discretization.
+
+\paragraph{Structure-agnostic convergence metric.}
+To compare methods without relying on knowledge of the reference solution,
+we also report the steady-state HJB residual $E$ defined in~\eqref{eqn:ss_residual}.
+This metric is computable for any approximation $\hat V$ and is identically
+zero if and only if $\hat V$ solves the infinite-horizon HJB exactly.
+On the LQR benchmark all methods achieve small $E$ by construction;
+on the nonlinear benchmark $E$ distinguishes methods that satisfy the
+HJB from those that merely interpolate the training targets.

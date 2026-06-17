@@ -1,0 +1,37 @@
+Adaptive Dynamic Programming (ADP) approximates dynamic programming when the exact value function is unavailable or too expensive to compute. In the actor-critic form, the critic learns a value approximation $\hat V_\theta(x)$ and the actor updates a policy using the critic's gradient. This is closely related to reinforcement learning, but in continuous-time optimal control the update is usually motivated by the HJB equation and policy iteration~\cite{bertsekas1996neuro,sutton2018reinforcement}.
+
+For a fixed policy $u=\pi(x)$, the critic is trained to satisfy the policy-evaluation equation
+\begin{equation}
+\begin{aligned}
+0 ={}& c(x,\pi(x)) + \nabla V^\pi(x)^\top f(x,\pi(x))\\
+&+ \frac{1}{2}\operatorname{Tr}\left(\sigma^\top \nabla^2 V^\pi(x)\sigma\right).
+\end{aligned}
+\end{equation}
+The actor then improves the policy by greedily minimizing the Hamiltonian,
+\begin{equation}
+\pi_{\mathrm{new}}(x)=\arg\min_u
+\left[c(x,u)+\nabla \hat V_\theta(x)^\top f(x,u)\right].
+\end{equation}
+For the LQR case study, this greedy update has the closed form
+\begin{equation}
+u^\star(x)=-\frac{1}{2}R^{-1}B^\top \nabla \hat V_\theta(x).
+\end{equation}
+
+The Julia implementation uses the quadratic critic
+\begin{equation}
+\hat V_\theta(x)=x^\top P_\theta x+\beta_\theta,
+\end{equation}
+then alternates between policy evaluation for the current linear controller and policy improvement using the value gradient. This is the most structure-aware method in the comparison: it uses the simulator, the cost, and the known control-affine dynamics without requiring a full PDE grid. Its main limitation is that the critic class must be expressive enough; if the true value is far from quadratic, the same actor-critic loop would need a richer function approximator and more careful stabilization.
+
+\paragraph{Convergence requirements.}
+Policy iteration converges monotonically to $V^\star$ when the initial policy
+is \emph{admissible}---stabilizing with finite cost---a hard prerequisite that
+must be constructed by the user~\cite{abu2005nearly}.
+With function approximation, convergence is to a neighborhood of $V^\star$
+whose size depends on the expressiveness of the basis class.
+The online simultaneous actor-critic of~\cite{vamvoudakis2010online} provides
+a Lyapunov proof of \emph{uniform ultimate boundedness} of the weight errors,
+not asymptotic convergence to $V^\star$.
+For the stochastic case, the policy-evaluation equation~\eqref{eqn:stochastic_dynamics}
+requires the Ito correction term $\frac{1}{2}\operatorname{Tr}(\sigma^\top\nabla^2 V^\pi\sigma)$;
+basis functions must be chosen so that this term is representable in the critic class.

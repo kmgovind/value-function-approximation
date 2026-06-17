@@ -1,0 +1,49 @@
+The deep BSDE method~\cite{han2018solving} exploits the nonlinear Feynman-Kac
+lemma: for a semilinear parabolic PDE, the solution $V(t,x_t)$ is the
+$Y$-component of a backward stochastic differential equation (BSDE):
+\begin{equation}
+  dY_t = -f(X_t,Z_t)\,dt + Z_t^\top dW_t,\quad Y_T=\phi(X_T),
+\end{equation}
+where $Z_t=\sigma^\top\nabla_x V(t,X_t)$ is the gradient-weighted
+diffusion process.  Han, Jentzen, and E~\cite{han2018solving} parameterize
+$Z_t\approx\hat Z(X_t,t;\theta_t)$ by a neural network at each discretized
+time step and minimize the terminal mismatch
+$\mathbb{E}[|Y_T-\phi(X_T)|^2]$ via a forward simulation of the SDE.
+The initial value $Y_0\approx\hat V(x_0,0)$ is recovered directly,
+with no grid required.
+
+Han and Long~\cite{han2020convergence} prove an \emph{a posteriori} error
+bound: the error in $Y_0$ is bounded by the square root of the minimized
+loss, provided the backward equation is decoupled from the forward
+dynamics in its drift.
+Negyesi, Huang, and Oosterlee~\cite{negyesi2024coupled} generalize this
+to fully coupled FBSDEs.
+
+\paragraph{Critical limitation: degenerate diffusion.}
+The Feynman-Kac representation requires a non-degenerate diffusion in
+\emph{all} state components.  If some state variables evolve
+deterministically (i.e., rows of $\sigma$ are zero), the classical BSDE
+formulation does not apply without a generalized extension.
+This is a binding constraint for problems where part of the state---such
+as an information or coverage variable---has no stochastic forcing.
+
+\paragraph{Implementation note.}
+The Julia script \texttt{deep\_bsde.jl} implements a
+\emph{backward dynamic programming} (BDP) scheme rather than the full
+Han et al.\ deep BSDE.  Starting from the terminal quadratic cost, it
+fits a quadratic value model to the one-step Bellman backup:
+\begin{equation}
+  V_k(x) \approx \min_u\!\left[c(x,u)\Delta t
+    + \mathbb{E}[V_{k+1}(x+\Delta x)]\right],
+\end{equation}
+exploiting the fact that the expectation is analytic for quadratic $V$
+and additive Gaussian noise.  This is equivalent to the deep BSDE in the
+LQR setting but does not generalize to non-quadratic value functions
+without replacing the quadratic basis with a neural network and estimating
+the expectation by Monte Carlo.
+
+\paragraph{Key advantage.}
+Unlike PINNs, the deep BSDE method requires only \emph{first-order}
+gradients ($Z_t=\sigma^\top\nabla V$), avoiding the Hessian computation
+needed for the Ito correction.  This makes it attractive for high-dimensional
+problems where second-order AD is prohibitively expensive.
